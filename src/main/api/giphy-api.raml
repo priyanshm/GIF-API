@@ -1,0 +1,51 @@
+#%RAML 1.0
+title: Giphy API
+baseUri: https://mocksvc.mulesoft.com/mocks/318b5454-bfdf-4fea-b026-96fb010140d2/giffy # baseUri: https://mocksvc.mulesoft.com/mocks/2bb5cf3d-6f71-4b80-a617-b62997c515a2/giffy # baseUri: https://mocksvc.mulesoft.com/mocks/d13799bf-4737-4c1c-90eb-3a3e1ba5a47b/giffy # baseUri: /giffy
+protocols: HTTP
+
+securitySchemes:
+  basicAuth:
+    description: Each request must contain the headers necessary for basic authentication
+    type: Basic Authentication
+    describedBy:
+      headers:
+        Authorization:
+          description: Used to send the Base64-encoded "username:password" credentials
+          type: string
+      responses:
+        401:
+          description: |
+            Unauthorized. Either the provided username and password
+            combination is invalid, or the user is not allowed to access
+            the content provided by the requested URL.
+          body:
+            application/json:
+securedBy: basicAuth
+/v1:
+ /external:
+   /gifs:
+      displayName: gifs
+      description: Retrieve all gifs by the qyery param tag
+      get:
+        description: Retrieves all gifs based on filter
+        queryParameters: 
+          tag:
+           displayName: tag
+           type: string
+           example: "cat"
+           required: true
+        responses:
+            200:
+               body:
+                application/json: 
+                  example: !include example/GifAllResponse.json
+   /{id}:
+    displayName: id
+    description: Retrieve a particular gif by the id
+    get:
+     responses: 
+        200:
+            body:
+              application/json: 
+                  example: !include example/Retrievegifbyid.json
+       

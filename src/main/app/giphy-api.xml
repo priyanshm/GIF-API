@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <http:listener-config name="giphy-api-httpListenerConfig" host="0.0.0.0" port="8081" doc:name="HTTP Listener Configuration"/>
+    <apikit:config name="giphy-api-config" raml="giphy-api.raml" consoleEnabled="false" doc:name="Router" keepRamlBaseUri="false">
+        <apikit:flow-mapping resource="/v1/external/gifs" action="get" flow-ref="get:/v1/external/gifs:giphy-api-config"/>
+    </apikit:config>
+    <http:request-config name="HTTP_Request_Configuration" host="api.giphy.com" port="80" doc:name="HTTP Request Configuration"/>
+    <flow name="giphy-api-main">
+        <http:listener config-ref="giphy-api-httpListenerConfig" path="/api/*" doc:name="HTTP"/>
+        <apikit:router config-ref="giphy-api-config" doc:name="APIkit Router"/>
+        <exception-strategy ref="giphy-api-apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy"/>
+    </flow>
+    <flow name="giphy-api-console">
+        <http:listener config-ref="giphy-api-httpListenerConfig" path="/console/*" doc:name="HTTP"/>
+        <apikit:console config-ref="giphy-api-config" doc:name="APIkit Console"/>
+    </flow>
+    <flow name="get:/v1/external/gifs:giphy-api-config">
+        <logger message="Received request to get all gif for query param, #[message.inboundProperties.'http.query.params'.tag]" level="INFO" doc:name="Logger"/>
+        <http:request config-ref="HTTP_Request_Configuration" path="/v1/gifs/random" method="GET" doc:name="HTTP">
+            <http:request-builder>
+                <http:query-param paramName="tag" value="#[message.inboundProperties.'http.query.params'.tag]"/>
+                <http:header headerName="api_key" value="4MnTYbBWbVtAYHg7JPQThm9ZImf8hXlf"/>
+            </http:request-builder>
+        </http:request>
+        <dw:transform-message doc:name="Transform Message" metadata:id="502cebd2-8a6e-4dc6-9f1d-0b77bc36090d">
+            <dw:input-payload mimeType="application/json"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+[{
+	id: payload.data.id,
+	description: payload.data.title,
+	bitlyGifUrl: payload.data.bitly_gif_url,
+	loopingGifUrl: {
+		mp4: payload.data.images.original_mp4.mp4,
+		mp4_size: payload.data.images.original_mp4.mp4_size
+	},
+	creationDateTime: payload.data.import_datetime,
+	username: payload.data.username
+}]]]></dw:set-payload>
+        </dw:transform-message>
+        <logger message="Response from gif backend api :#[payload]" level="INFO" doc:name="Logger"/>
+    </flow>
+    <flow name="get:/v1/external/{id}:giphy-api-config">
+        <set-payload value="{&#xA;      &quot;id&quot; : &quot;3oEjHSUiIjzxqIOo80&quot;,&#xA;      &quot;description&quot; : &quot;&quot;,&#xA;      &quot;bitlyGifUrl&quot;: &quot;https:\/\/gph.is\/28JoSXz&quot;,&#xA;      &quot;loopingGifUrl&quot;: &#xA;              {&#xA;&#x9;         &quot;mp4&quot;: &quot;https:\/\/media2.giphy.com\/media\/3oEjHSUiIjzxqIOo80\/giphy-loop.mp4&quot;,&#xA;&#x9;         &quot;mp4_size&quot;: &quot;503056&quot;&#xA;&#x9;      }&#xA; }" doc:name="Set Payload"/>
+        <logger message="#[payload]" level="INFO" doc:name="Logger"/>
+    </flow>
+    <apikit:mapping-exception-strategy name="giphy-api-apiKitGlobalExceptionMapping">
+        <apikit:mapping statusCode="404">
+            <apikit:exception value="org.mule.module.apikit.exception.NotFoundException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Resource not found&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="405">
+            <apikit:exception value="org.mule.module.apikit.exception.MethodNotAllowedException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Method not allowed&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="415">
+            <apikit:exception value="org.mule.module.apikit.exception.UnsupportedMediaTypeException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Unsupported media type&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="406">
+            <apikit:exception value="org.mule.module.apikit.exception.NotAcceptableException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Not acceptable&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="400">
+            <apikit:exception value="org.mule.module.apikit.exception.BadRequestException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Bad request&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+    </apikit:mapping-exception-strategy>
+</mule>

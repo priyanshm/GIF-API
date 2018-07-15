@@ -1,0 +1,16 @@
+{
+    "inputMessageMetadata": {
+        "messagePayload": {
+            "connectorName": "#_custom_mule_metadata_type_#",
+            "typeId": "GiphyResponse"
+        }
+    },
+    "outputMessageMetadata": {
+        "messagePayload": {
+            "connectorName": "#_custom_mule_metadata_type_#",
+            "typeId": "GifResponse"
+        }
+    },
+    "id": "502cebd2-8a6e-4dc6-9f1d-0b77bc36090d",
+    "version": "5.2.0.0"
+}
